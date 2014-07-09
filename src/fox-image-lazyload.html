@@ -1,0 +1,89 @@
+<!-->
+	请注意,懒加载采用轮询判断元素offset是否在当前可视窗口内,然后替换元素,所以元素不能bind事件,只能采用委派事件binding
+<-->
+<fox-element name="fox-image-lazyload" attributes="src type">
+
+	<script>
+		
+		var LazyLoad = (function() {
+			var imgQueue = [];
+
+			var height = $(window).height();
+
+			var width = $(window).width();
+
+			function removeItem(arr, item) {
+				var i;
+				while (( i = arr.indexOf(item)) !== -1) {
+					arr.splice(i, 1);
+				}
+			}
+
+			function loop() {
+				for (var i = 0; i < imgQueue.length; ++i) {
+					var item = imgQueue[i], offset = item.dom.getBoundingClientRect();
+					// console.info(offset);
+					if ((offset.width > 0 || offset.height > 0) && offset.top < height && offset.left < width) {
+						item.callback(item.dom);
+						imgQueue.splice(i--, 1);
+
+					}
+				}
+
+			}
+
+			setInterval(function() {
+				loop();
+				// console.info(imgQueue.length);
+			}, 1000);
+
+			return {
+
+				addInQueue : function(item) {
+					imgQueue.push(item);
+				},
+				removeFromQueue : function(item) {
+					removeItem(imgQueue, item);
+				}
+			};
+
+		})();
+
+		fox('fox-image-lazyload', {
+			lifecycle : {
+				inserted : function() {
+					LazyLoad.addInQueue({
+						dom : this,
+						callback : function(dom) {
+							var src = dom.src, type = dom.type;
+							var attrs = {};
+							$.each(dom.attributes, function(idx, attr) {
+								attrs[attr.nodeName] = attr.nodeValue;
+							});
+							var newEl;
+							
+							
+							
+							switch(type) {
+								case "img":
+								
+									newEl = "<img/>";
+									break;
+								case "background":
+									newEl = "<div style='background-image:url("+src+")'></div>";
+									
+									break;
+							}
+							
+							$(dom).replaceWith($(newEl,attrs).append($(dom).contents()));
+
+						}
+					});
+				}
+			}
+		});
+
+	</script>
+
+</fox-element>
+
